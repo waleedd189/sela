@@ -240,12 +240,8 @@
       <div class="search-wrap">
         <input type="text" id="search-input" placeholder="ابحث في جهات الاتصال..." oninput="filterContacts()" />
       </div>
-      <div class="contacts-label">المحادثات</div>
+      <div class="contacts-label">جهات الاتصال</div>
       <div class="contacts-list" id="contacts-list"></div>
-      <button class="add-contact-btn" onclick="openAddModal()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        إضافة جهة اتصال بالبريد
-      </button>
     </div>
 
     <!-- منطقة الشات -->
@@ -478,19 +474,13 @@ const setPresence = online => {
 const loadContacts = () => {
   if(!currentUser) return;
   if(contactsUnsub) contactsUnsub();
-  contactsUnsub = onSnapshot(doc(db,'users',currentUser.uid), async snap => {
-    const data = snap.data(); if(!data) return;
-    const uids = data.contacts||[];
+  contactsUnsub = onSnapshot(collection(db,'users'), snap => {
     contacts = [];
     const list = document.getElementById('contacts-list');
     list.innerHTML = '';
-    if(!uids.length) { list.innerHTML = '<div style="padding:20px;text-align:center;font-size:13px;color:var(--text-muted)">لا توجد جهات اتصال بعد.<br>أضف شخصاً للبدء!</div>'; return; }
-    for(const uid of uids) {
-      const cs = await getDoc(doc(db,'users',uid));
-      if(!cs.exists()) continue;
-      const cd = cs.data(); contacts.push(cd);
-      renderContact(cd,list);
-    }
+    const others = snap.docs.filter(d=>d.id!==currentUser.uid).map(d=>d.data()).sort((a,b)=>(a.name||'').localeCompare(b.name||'','ar'));
+    if(!others.length) { list.innerHTML = '<div style="padding:20px;text-align:center;font-size:13px;color:var(--text-muted)">لا يوجد مستخدمون آخرون بعد.</div>'; return; }
+    others.forEach(cd => { contacts.push(cd); renderContact(cd,list); });
   });
 };
 
