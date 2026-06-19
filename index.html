@@ -424,6 +424,7 @@ window.doGoogleSignIn = async () => {
       await setDoc(doc(db,'users',u.uid),{ uid:u.uid, name:u.displayName||u.email, email:(u.email||'').toLowerCase(), contacts:[], createdAt:serverTimestamp() });
     }
   } catch(e) {
+    console.error('Google sign-in error:', e.code, e.message);
     if(e.code!=='auth/popup-closed-by-user') showAuthErr(friendlyErr(e.code));
   }
 };
@@ -437,6 +438,9 @@ const friendlyErr = code => ({
   'auth/user-not-found': 'لا يوجد حساب بهذا البريد.',
   'auth/wrong-password': 'كلمة المرور غير صحيحة.',
   'auth/invalid-credential': 'البريد أو كلمة المرور غير صحيحة.',
+  'auth/unauthorized-domain': 'هذا الدومين غير مصرّح به في إعدادات Firebase. أضِف الدومين من Authentication > Settings > Authorized domains.',
+  'auth/operation-not-allowed': 'تسجيل الدخول بجوجل غير مفعّل في إعدادات المشروع.',
+  'auth/popup-blocked': 'المتصفح منع فتح نافذة تسجيل الدخول. اسمح بالنوافذ المنبثقة لهذا الموقع.',
 }[code] || 'حدث خطأ، يرجى المحاولة مجدداً.');
 
 const showAuthErr = msg => document.getElementById('auth-err').textContent = msg;
