@@ -370,6 +370,8 @@ let activeChat = null, activeChatId = null;
 let contacts = [];
 let messagesUnsub = null, contactsUnsub = null;
 let pc = null, localStream = null, callType = null;
+let unreadCounts = {};
+const baseTitle = document.title;
 let callTimerInterval = null, callSeconds = 0;
 let muted = false, camOff = false;
 let mediaRecorder = null, recordedChunks = [], recordStream = null;
@@ -455,6 +457,7 @@ onAuthStateChanged(auth, async user => {
     setPresence(true);
     loadContacts();
     listenIncomingCalls();
+    requestNotifPermission();
   } else {
     currentUser = null; currentUserData = null;
     document.getElementById('auth-screen').style.display = 'flex';
@@ -495,23 +498,90 @@ const renderContact = (cd, container) => {
       <div class="c-name">${cd.name}</div>
       <div class="c-last" id="last-${cd.uid}">اضغط للمحادثة</div>
     </div>
-    <div class="c-meta"><span class="c-time" id="time-${cd.uid}"></span></div>`;
+    <div class="c-meta"><span class="c-time" id="time-${cd.uid}"></span><span class="unread-badge" id="unread-${cd.uid}" style="display:none">0</span></div>`;
   el.onclick = () => openChat(cd);
   container.appendChild(el);
   listenLastMsg(cid,cd.uid);
   listenPresence(cd.uid,el);
 };
 
+const messagePreview = m => {
+  if(m.type==='image') return '📷 صورة';
+  if(m.type==='video') return '🎥 فيديو';
+  if(m.type==='voice') return '🎤 رسالة صوتية';
+  return m.text||'';
+};
+
 const listenLastMsg = (cid,uid) => {
+  let firstLoad = true;
   onSnapshot(query(collection(db,'chats',cid,'messages'),orderBy('createdAt','desc')), snap => {
-    if(snap.empty) return;
-    const last = snap.docs[0].data();
-    const el = document.getElementById(`last-${uid}`);
-    const tel = document.getElementById(`time-${uid}`);
-    if(el) el.textContent = last.text||'';
-    if(tel&&last.createdAt) tel.textContent = formatTime(last.createdAt);
+    if(!snap.empty) {
+      const last = snap.docs[0].data();
+      const el = document.getElementById(`last-${uid}`);
+      const tel = document.getElementById(`time-${uid}`);
+      if(el) el.textContent = messagePreview(last);
+      if(tel&&last.createdAt) tel.textContent = formatTime(last.createdAt);
+    }
+    if(!firstLoad) {
+      snap.docChanges().forEach(ch => {
+        if(ch.type==='added') {
+          const m = ch.doc.data();
+          if(m.senderId && m.senderId!==currentUser.uid && m.type!=='system') handleIncomingMessage(m,uid);
+        }
+      });
+    }
+    firstLoad = false;
   });
 };
+
+const handleIncomingMessage = (m,uid) => {
+  const isActiveChat = activeChat?.uid===uid;
+  const isVisible = !document.hidden;
+  if(isActiveChat && isVisible) return;
+  unreadCounts[uid] = (unreadCounts[uid]||0)+1;
+  updateUnreadBadge(uid);
+  playNotifSound();
+  notifyBrowser(m.senderName||'رسالة جديدة', messagePreview(m), uid);
+};
+
+const updateUnreadBadge = uid => {
+  const badge = document.getElementById(`unread-${uid}`);
+  const n = unreadCounts[uid]||0;
+  if(badge) { badge.textContent = n>99?'99+':n; badge.style.display = n>0?'inline-block':'none'; }
+  const total = Object.values(unreadCounts).reduce((a,b)=>a+b,0);
+  document.title = total>0 ? `(${total}) ${baseTitle}` : baseTitle;
+};
+
+let audioCtx = null;
+const playNotifSound = () => {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==='suspended') audioCtx.resume();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.connect(g); g.connect(audioCtx.destination);
+    o.type='sine'; o.frequency.value=880;
+    g.gain.setValueAtTime(0.001,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.18,audioCtx.currentTime+0.01);
+    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.35);
+    o.start(); o.stop(audioCtx.currentTime+0.35);
+  } catch(e) {}
+};
+
+const notifyBrowser = (title, body, uid) => {
+  if(!('Notification' in window) || Notification.permission!=='granted') return;
+  try {
+    const n = new Notification(title, { body, icon:'icon-192.png', tag:'sela-'+uid });
+    n.onclick = () => { window.focus(); const cd = contacts.find(c=>c.uid===uid); if(cd) openChat(cd); n.close(); };
+  } catch(e) {}
+};
+
+window.requestNotifPermission = () => {
+  if('Notification' in window && Notification.permission==='default') Notification.requestPermission();
+};
+
+document.addEventListener('visibilitychange', () => {
+  if(!document.hidden && activeChat) { unreadCounts[activeChat.uid]=0; updateUnreadBadge(activeChat.uid); }
+});
 
 const listenPresence = (uid,el) => {
   onValue(ref(rtdb,`presence/${uid}`), snap => {
@@ -532,6 +602,7 @@ window.filterContacts = () => {
 
 const openChat = cd => {
   activeChat = cd; activeChatId = chatId(currentUser.uid,cd.uid);
+  unreadCounts[cd.uid] = 0; updateUnreadBadge(cd.uid);
   document.getElementById('empty-chat').style.display = 'none';
   const cv = document.getElementById('chat-view'); cv.style.display = 'flex';
   const color = getColor(cd.name);
