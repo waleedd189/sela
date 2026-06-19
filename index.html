@@ -116,6 +116,21 @@
   .send-btn { width: 42px; height: 42px; border-radius: 50%; background: var(--teal); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.15s; }
   .send-btn:hover { background: var(--teal-dark); }
   .send-btn svg { width: 18px; height: 18px; color: #fff; transform: scaleX(-1); }
+  .inline-icon-btn { width: 30px; height: 30px; border: none; background: transparent; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-muted); flex-shrink: 0; transition: all 0.15s; }
+  .inline-icon-btn:hover { background: var(--border); color: var(--teal-dark); }
+  .inline-icon-btn svg { width: 18px; height: 18px; }
+  .msg-media { padding: 4px !important; background: transparent !important; box-shadow: none !important; }
+  .msg-media img, .msg-media video { display: block; max-width: 240px; max-height: 320px; border-radius: 14px; cursor: pointer; width: 100%; }
+  .msg-group.mine .msg-media { background: transparent; }
+  .msg-voice { display: flex; align-items: center; padding: 8px 12px !important; }
+  .msg-voice audio { width: 220px; height: 36px; }
+  .upload-progress { display: flex; align-items: center; gap: 10px; padding: 8px 16px; background: var(--teal-light); border-top: 1px solid var(--border); font-size: 12px; color: var(--teal-dark); }
+  .upload-progress-track { flex: 1; height: 5px; background: rgba(0,0,0,0.08); border-radius: 4px; overflow: hidden; }
+  .upload-progress-fill { height: 100%; width: 0%; background: var(--teal); transition: width 0.2s; }
+  .recording-bar { display: none; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--border); background: var(--surface); }
+  .rec-indicator { flex: 1; display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text); font-variant-numeric: tabular-nums; }
+  .rec-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--danger); animation: recpulse 1s infinite; }
+  @keyframes recpulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
 
   /* EMPTY */
   .empty-chat { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); gap: 12px; background: var(--bg); }
@@ -260,14 +275,34 @@
           </div>
         </div>
         <div class="messages" id="messages-list"></div>
-        <div class="input-area">
-          <button class="send-btn" onclick="sendMessage()">
+        <div class="upload-progress" id="upload-progress">
+          <span id="upload-progress-text">جارٍ رفع الملف...</span>
+          <div class="upload-progress-track"><div class="upload-progress-fill" id="upload-progress-fill"></div></div>
+        </div>
+        <div class="input-area" id="input-area">
+          <button class="send-btn" id="send-btn" onclick="sendMessage()" style="display:none">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
+          <button class="send-btn" id="mic-btn" onclick="startVoiceRecording()" title="رسالة صوتية">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          </button>
           <div class="input-wrap">
-            <textarea id="msg-input" placeholder="اكتب رسالة..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+            <button class="inline-icon-btn" onclick="document.getElementById('media-input').click()" title="إرفاق صورة أو فيديو">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+            </button>
+            <textarea id="msg-input" placeholder="اكتب رسالة..." rows="1" onkeydown="handleKey(event)" oninput="handleInput(this)"></textarea>
           </div>
         </div>
+        <div class="recording-bar" id="recording-bar">
+          <button class="inline-icon-btn" onclick="cancelVoiceRecording()" title="إلغاء التسجيل">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          </button>
+          <div class="rec-indicator"><span class="rec-dot"></span><span id="rec-timer">0:00</span></div>
+          <button class="send-btn" onclick="stopAndSendVoiceRecording()" title="إرسال">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+        <input type="file" id="media-input" accept="image/*,video/*" style="display:none" onchange="handleMediaSelect(event)" />
       </div>
     </div>
   </div>
@@ -316,6 +351,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs, onSnapshot, addDoc, serverTimestamp, orderBy, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getDatabase, ref, set, onValue, push, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getStorage, ref as sref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCNRx2rEv9tpf47R6eDt3L32WHnJgwvw1c",
@@ -331,6 +367,7 @@ const fbApp = initializeApp(firebaseConfig);
 const auth = getAuth(fbApp);
 const db = getFirestore(fbApp);
 const rtdb = getDatabase(fbApp);
+const storage = getStorage(fbApp);
 
 let currentUser = null, currentUserData = null;
 let activeChat = null, activeChatId = null;
@@ -339,6 +376,8 @@ let messagesUnsub = null, contactsUnsub = null;
 let pc = null, localStream = null, callType = null;
 let callTimerInterval = null, callSeconds = 0;
 let muted = false, camOff = false;
+let mediaRecorder = null, recordedChunks = [], recordStream = null;
+let recordTimerInterval = null, recordSeconds = 0;
 
 const COLORS = ['#1d9e75','#185fa5','#534ab7','#854f0b','#993556','#0f6e56','#993c1d'];
 const getColor = s => COLORS[s.charCodeAt(0) % COLORS.length];
@@ -525,6 +564,12 @@ const appendMessage = msg => {
   g.className = `msg-group ${mine?'mine':'other'}`;
   if(msg.type==='system') {
     g.innerHTML = `<div class="msg-system"><span>${msg.text}</span></div>`;
+  } else if(msg.type==='image') {
+    g.innerHTML = `<div class="msg-bubble msg-media"><a href="${msg.mediaUrl}" target="_blank" rel="noopener"><img src="${msg.mediaUrl}" loading="lazy" alt="صورة" /></a></div><div class="msg-time">${formatTime(msg.createdAt)}</div>`;
+  } else if(msg.type==='video') {
+    g.innerHTML = `<div class="msg-bubble msg-media"><video src="${msg.mediaUrl}" controls preload="metadata"></video></div><div class="msg-time">${formatTime(msg.createdAt)}</div>`;
+  } else if(msg.type==='voice') {
+    g.innerHTML = `<div class="msg-bubble msg-voice"><audio controls src="${msg.mediaUrl}"></audio></div><div class="msg-time">${formatTime(msg.createdAt)}</div>`;
   } else {
     g.innerHTML = `<div class="msg-bubble">${esc(msg.text)}</div><div class="msg-time">${formatTime(msg.createdAt)}</div>`;
   }
@@ -538,11 +583,115 @@ window.sendMessage = async () => {
   const text = inp.value.trim();
   if(!text||!activeChatId) return;
   inp.value=''; inp.style.height='';
+  document.getElementById('send-btn').style.display = 'none';
+  document.getElementById('mic-btn').style.display = 'flex';
   await addDoc(collection(db,'chats',activeChatId,'messages'), { text, senderId:currentUser.uid, senderName:currentUserData.name, createdAt:serverTimestamp(), type:'text' });
 };
 
 window.handleKey = e => { if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendMessage(); } };
-window.autoResize = el => { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; };
+window.handleInput = el => {
+  el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px';
+  const hasText = el.value.trim().length>0;
+  document.getElementById('send-btn').style.display = hasText?'flex':'none';
+  document.getElementById('mic-btn').style.display = hasText?'none':'flex';
+};
+
+const showUploadProgress = (text) => {
+  document.getElementById('upload-progress-text').textContent = text||'جارٍ رفع الملف...';
+  document.getElementById('upload-progress-fill').style.width = '0%';
+  document.getElementById('upload-progress').style.display = 'flex';
+};
+const setUploadProgress = pct => { document.getElementById('upload-progress-fill').style.width = `${pct}%`; };
+const hideUploadProgress = () => { document.getElementById('upload-progress').style.display = 'none'; };
+
+window.handleMediaSelect = async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file || !activeChatId) return;
+  const isImage = file.type.startsWith('image/');
+  const isVideo = file.type.startsWith('video/');
+  if(!isImage && !isVideo) return showToast('يُسمح فقط بالصور والفيديوهات');
+  if(file.size > 50*1024*1024) return showToast('حجم الملف أكبر من الحد المسموح (٥٠ ميجا)');
+  const type = isImage?'image':'video';
+  showUploadProgress(isImage?'جارٍ رفع الصورة...':'جارٍ رفع الفيديو...');
+  try {
+    const path = `chats/${activeChatId}/media/${Date.now()}_${file.name}`;
+    const fileRef = sref(storage, path);
+    const task = uploadBytesResumable(fileRef, file);
+    task.on('state_changed',
+      snap => setUploadProgress(Math.round((snap.bytesTransferred/snap.totalBytes)*100)),
+      err => { hideUploadProgress(); showToast('فشل رفع الملف'); },
+      async () => {
+        const url = await getDownloadURL(task.snapshot.ref);
+        await addDoc(collection(db,'chats',activeChatId,'messages'), { type, mediaUrl:url, senderId:currentUser.uid, senderName:currentUserData.name, createdAt:serverTimestamp() });
+        hideUploadProgress();
+      }
+    );
+  } catch(err) { hideUploadProgress(); showToast('فشل رفع الملف'); }
+};
+
+window.startVoiceRecording = async () => {
+  if(!activeChatId) return showToast('اختر محادثة أولاً');
+  try { recordStream = await navigator.mediaDevices.getUserMedia({audio:true}); }
+  catch(e) { showToast('تعذّر الوصول إلى الميكروفون'); return; }
+  recordedChunks = [];
+  mediaRecorder = new MediaRecorder(recordStream);
+  mediaRecorder.ondataavailable = e => { if(e.data.size>0) recordedChunks.push(e.data); };
+  mediaRecorder.start();
+  recordSeconds = 0;
+  document.getElementById('rec-timer').textContent = '0:00';
+  document.getElementById('input-area').style.display = 'none';
+  document.getElementById('recording-bar').style.display = 'flex';
+  recordTimerInterval = setInterval(()=>{
+    recordSeconds++;
+    const m=Math.floor(recordSeconds/60), s=recordSeconds%60;
+    document.getElementById('rec-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+  },1000);
+};
+
+const stopRecordingTracks = () => {
+  clearInterval(recordTimerInterval);
+  if(recordStream) { recordStream.getTracks().forEach(t=>t.stop()); recordStream=null; }
+  document.getElementById('recording-bar').style.display = 'none';
+  document.getElementById('input-area').style.display = 'flex';
+};
+
+window.cancelVoiceRecording = () => {
+  if(mediaRecorder && mediaRecorder.state!=='inactive') { mediaRecorder.onstop=null; mediaRecorder.stop(); }
+  recordedChunks = [];
+  stopRecordingTracks();
+};
+
+window.stopAndSendVoiceRecording = () => {
+  if(!mediaRecorder || mediaRecorder.state==='inactive') return;
+  const duration = recordSeconds;
+  mediaRecorder.onstop = async () => {
+    stopRecordingTracks();
+    if(recordedChunks.length===0 || duration<1) return;
+    const blob = new Blob(recordedChunks, {type:'audio/webm'});
+    await uploadVoiceNote(blob, duration);
+  };
+  mediaRecorder.stop();
+};
+
+const uploadVoiceNote = async (blob, duration) => {
+  if(!activeChatId) return;
+  showUploadProgress('جارٍ إرسال الرسالة الصوتية...');
+  try {
+    const path = `chats/${activeChatId}/media/${Date.now()}_voice.webm`;
+    const fileRef = sref(storage, path);
+    const task = uploadBytesResumable(fileRef, blob);
+    task.on('state_changed',
+      snap => setUploadProgress(Math.round((snap.bytesTransferred/snap.totalBytes)*100)),
+      err => { hideUploadProgress(); showToast('فشل إرسال الرسالة الصوتية'); },
+      async () => {
+        const url = await getDownloadURL(task.snapshot.ref);
+        await addDoc(collection(db,'chats',activeChatId,'messages'), { type:'voice', mediaUrl:url, duration, senderId:currentUser.uid, senderName:currentUserData.name, createdAt:serverTimestamp() });
+        hideUploadProgress();
+      }
+    );
+  } catch(err) { hideUploadProgress(); showToast('فشل إرسال الرسالة الصوتية'); }
+};
 
 window.openAddModal = () => {
   document.getElementById('modal-overlay').classList.add('active');
