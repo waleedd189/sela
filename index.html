@@ -133,10 +133,11 @@
   @keyframes recpulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
 
   /* EMPTY */
-  .empty-chat { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); gap: 12px; background: var(--bg); }
+  .empty-chat { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); gap: 12px; background: var(--bg); }
   .empty-chat .logo-mark { width: 64px; height: 64px; border-radius: 20px; background: var(--teal-light); display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; color: var(--teal-dark); }
   .empty-chat h2 { font-size: 20px; font-weight: 700; color: var(--text); }
   .empty-chat p { font-size: 14px; }
+  .empty-chat .menu-toggle { position: absolute; top: 14px; right: 14px; background: var(--surface); box-shadow: var(--shadow); }
 
   /* CALL OVERLAY */
   #call-overlay { display: none; position: fixed; inset: 0; z-index: 100; background: #0d1117; flex-direction: column; align-items: center; justify-content: center; }
@@ -171,8 +172,23 @@
   .modal-err { font-size: 13px; color: var(--danger); min-height: 18px; margin-bottom: 4px; }
 
   /* TOAST */
-  #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(60px); background: #1a1a1a; color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 14px; z-index: 200; transition: transform 0.3s; pointer-events: none; }
+  #toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(60px); background: #1a1a1a; color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 14px; z-index: 200; transition: transform 0.3s; pointer-events: none; white-space: nowrap; }
   #toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* NOTIF BANNER */
+  #notif-banner { display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 150; background: var(--surface); border-top: 1px solid var(--border); padding: 14px 20px; box-shadow: 0 -4px 20px rgba(0,0,0,0.1); }
+  #notif-banner.show { display: block; }
+  .notif-banner-inner { display: flex; align-items: center; gap: 12px; max-width: 600px; margin: 0 auto; }
+  .notif-banner-icon { width: 40px; height: 40px; border-radius: 12px; background: var(--teal-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .notif-banner-icon svg { width: 20px; height: 20px; color: var(--teal-dark); }
+  .notif-banner-text { flex: 1; }
+  .notif-banner-text strong { display: block; font-size: 14px; font-weight: 700; margin-bottom: 2px; color: var(--text); }
+  .notif-banner-text span { font-size: 12px; color: var(--text-muted); }
+  .notif-banner-btns { display: flex; gap: 8px; flex-shrink: 0; }
+  .notif-allow-btn { padding: 8px 18px; background: var(--teal); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; white-space: nowrap; }
+  .notif-allow-btn:hover { background: var(--teal-dark); }
+  .notif-later-btn { padding: 8px 14px; background: transparent; color: var(--text-muted); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; cursor: pointer; font-family: inherit; white-space: nowrap; }
+  .notif-later-btn:hover { background: var(--bg); }
 
   /* RESPONSIVE */
   .menu-toggle { display: none; }
@@ -247,6 +263,9 @@
     <!-- منطقة الشات -->
     <div class="chat-area" id="chat-area">
       <div class="empty-chat" id="empty-chat">
+        <button class="icon-btn menu-toggle" onclick="openSidebar()" title="جهات الاتصال">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
         <div class="logo-mark">ص</div>
         <h2>أهلاً بك في صلة</h2>
         <p>اختر جهة اتصال أو أضف شخصاً جديداً لتبدأ</p>
@@ -334,6 +353,23 @@
     <div class="modal-btns">
       <button class="btn-secondary" onclick="closeModal()">إلغاء</button>
       <button class="btn-primary" style="flex:1;margin-top:0" onclick="addContact()">إضافة</button>
+    </div>
+  </div>
+</div>
+
+<!-- بانر طلب الإشعارات -->
+<div id="notif-banner">
+  <div class="notif-banner-inner">
+    <div class="notif-banner-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    </div>
+    <div class="notif-banner-text">
+      <strong>فعّل الإشعارات</strong>
+      <span>عشان تعرف لما حد يبعتلك رسالة أو يكلمك</span>
+    </div>
+    <div class="notif-banner-btns">
+      <button class="notif-later-btn" onclick="dismissNotifBanner()">لأ شكراً</button>
+      <button class="notif-allow-btn" onclick="allowNotifications()">اسمح بالإشعارات 🔔</button>
     </div>
   </div>
 </div>
@@ -458,6 +494,7 @@ onAuthStateChanged(auth, async user => {
     loadContacts();
     listenIncomingCalls();
     requestNotifPermission();
+    openSidebar();
   } else {
     currentUser = null; currentUserData = null;
     document.getElementById('auth-screen').style.display = 'flex';
@@ -575,8 +612,35 @@ const notifyBrowser = (title, body, uid) => {
   } catch(e) {}
 };
 
+// ── إشعارات — بانر بدل الطلب التلقائي ──
 window.requestNotifPermission = () => {
-  if('Notification' in window && Notification.permission==='default') Notification.requestPermission();
+  if(!('Notification' in window)) return;
+  if(Notification.permission === 'granted') return;
+  if(Notification.permission === 'denied') return;
+  // نعرض البانر بعد ثانيتين من الدخول
+  setTimeout(() => document.getElementById('notif-banner').classList.add('show'), 2000);
+};
+
+window.allowNotifications = async () => {
+  dismissNotifBanner();
+  if(!('Notification' in window)) return showToast('المتصفح ده مش بيدعم الإشعارات');
+  try {
+    const perm = await Notification.requestPermission();
+    if(perm === 'granted') {
+      // نفتح AudioContext عن طريق تفاعل المستخدم
+      audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+      showToast('تم تفعيل الإشعارات ✅');
+      setTimeout(() => {
+        try { new Notification('صلة 🔔', { body: 'الإشعارات شغّالة دلوقتي!', icon: 'icon-192.png' }); } catch(e) {}
+      }, 300);
+    } else {
+      showToast('لم يتم السماح بالإشعارات');
+    }
+  } catch(e) { showToast('حدث خطأ أثناء طلب الإذن'); }
+};
+
+window.dismissNotifBanner = () => {
+  document.getElementById('notif-banner').classList.remove('show');
 };
 
 document.addEventListener('visibilitychange', () => {
